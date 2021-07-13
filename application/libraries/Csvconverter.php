@@ -13,70 +13,102 @@ class CsvConverter
 
     public function convert($file_path, $filename)
     {
-        // give it no permission
+        $parser = new \Smalot\PdfParser\Parser();
+        $pdf = $parser->parseFile($file_path);
+
+        // // give it no permission
         chmod($file_path, 0777);
 
         $fp = fopen('./documents/' . $filename . '.csv', 'w');
         // check its permission .
         chmod('./documents/' . $filename . '.csv', 0777);
-
-        echo "this is my coming from a library " . $file_path;
-
-        echo "<br/><br/><br> this is from anotherp parser";
-
-        $parser = new \Smalot\PdfParser\Parser();
-        $pdf = $parser->parseFile($file_path);
-
-        $text = $pdf->getText();
-        // echo $text;
-        $remove = "\n";
-        $split = explode($remove, $text);
-
-        $array[] = null;
-        $tab = "\t";
-
-        foreach ($split as $string) {
-            $row = explode($tab, $string);
-            array_push($array, $row);
-        }
-        echo "<pre>";
-        print_r($array);
-        echo "</pre>";
-
-        echo "<br/><br/><br> this is from anotherp parser";
-
+        echo "This text shall be convert to a csv <br/><br/>";
+         echo $pdf->getText();
         // Retrieve all pages from the pdf file.
-        // $pages = $pdf->getPages();
+        $pages = $pdf->getPages();
+        if ($pdf != "") {
 
-        // Loop over each page to extract text.
-        // foreach ($pages as $page) {
-        //     echo $page->getText();
-        //     fputcsv($fp, $page->getText());
+            foreach ($pages as $page) {
+                $original_text = $page->getText();
+                $remove = "\n";
+                $split = explode($remove, $original_text);
 
-        // }
+                $array[] = null;
+                $tab = "\t";
 
-        // echo "<br/><br/><br> this is from anotherp parser";
+                foreach ($split as $string) {
 
-        // Retrieve all details from the pdf file.
-        // $details = $pdf->getDetails();
+                    // $string = $this->format_data($string);
+                    $row = explode($tab, $string);
 
-        // // Loop over each property to extract values (string or array).
-        // foreach ($details as $property => $value) {
-        //     if (is_array($value)) {
-        //         $value = implode(', ', $value);
-        //     }
-        //     echo $property . ' => ' . $value . "\n";
-        // }
+                    array_push($array, $row);
+                }
 
-        foreach ($array as $line) {
-            if (empty($line)) {
-                continue;
+                //Loop over each page to extract text.
+
+                foreach ($array as $line) {
+                    if (empty($line)) {
+                        continue;
+                    }
+                    fputcsv($fp, $line);
+                }
+
             }
+            echo" <br/><br/> Check under documents to see the csv file";
+            fclose($fp);
 
-            fputcsv($fp, $line);
+        } else {
+            echo "No text extracted from PDF.";
         }
-        fclose($fp);
 
+// Common functions
+
+    }
+    public function format_data($original_text)
+    {
+        $text = nl2br($original_text); // Paragraphs and line break formatting
+        $text = $this->clean_ascii_characters($text); // Check special characters
+        // $text = str_replace(array("<br /> <br /> <br />", "<br> <br> <br>"), "<br /> <br />", $text); // Optional
+        $text = addslashes($text); // Backslashes for single quotes
+        $text = stripslashes($text);
+        $text = strip_tags($text);
+
+        /**********************************************/
+        /* Additional step to check formatting issues */
+        // There may be some PDF formatting issues. I'm trying to check if the words are:
+        // (a) Join. E.g., HelloWorld!Thereisnospacingbetweenwords
+        // (b) splitted. E.g., H e l l o W o r l d ! E x c e s s i v e s p a c i n g
+        $check_text = preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
+
+        $no_spacing_error = 0;
+        $excessive_spacing_error = 0;
+        foreach ($check_text as $word_key => $word) {
+            if (strlen($word) >= 60) { // 60 is a limit that I set for a word length, assuming that no word would be 60 length long
+                $no_spacing_error++;
+            } else if (strlen($word) == 1) { // To check if the word is 1 word length
+                if (preg_match('/^[A-Za-z]+$/', $word)) { // Only consider alphabetical words and ignore numbers.
+                    $excessive_spacing_error++;
+                }
+            }
+        }
+
+        // Set the boundaries of errors you can accept
+        // E.g., we reject the change if there are 30 or more $no_spacing_error or 150 or more $excessive_spacing_error issues
+        if ($no_spacing_error >= 60 || $excessive_spacing_error >= 150) {
+            // echo "Too many formatting issues<br />";
+            return null;
+        } else {
+            // echo "Success!<br />";
+            return $text;
+        }
+    }
+    public function clean_ascii_characters($string)
+    {
+        $string = str_replace(array('-', '–'), '-', $string);
+        $string = preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $string);
+        // $string = preg_replace('/(?<!\ )[A-Z]/', ' $0', $string);
+
+        return $string;
     }
 
 }
