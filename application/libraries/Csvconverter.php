@@ -93,7 +93,7 @@ class CsvConverter
         }
 
         // Set the boundaries of errors you can accept
-        // E.g., we reject the change if there are 30 or more $no_spacing_error or 150 or more $excessive_spacing_error issues
+        // E.g., we reject the change if there are 60 or more $no_spacing_error or 150 or more $excessive_spacing_error issues
         if ($no_spacing_error >= 60 || $excessive_spacing_error >= 150) {
             // echo "Too many formatting issues<br />";
             return null;
