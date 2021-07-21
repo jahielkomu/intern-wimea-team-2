@@ -13,8 +13,11 @@ class CsvConverter
 
     public function convert($file_path, $filename)
     {
+
         $parser = new \Smalot\PdfParser\Parser();
         $pdf = $parser->parseFile($file_path);
+
+
 
         // // give it no permission
         chmod($file_path, 0777);
@@ -23,38 +26,42 @@ class CsvConverter
         // check its permission .
         chmod('./documents/' . $filename . '.csv', 0777);
         echo "This text shall be convert to a csv <br/><br/>";
-         echo $pdf->getText();
+
         // Retrieve all pages from the pdf file.
         $pages = $pdf->getPages();
+
         if ($pdf != "") {
 
             foreach ($pages as $page) {
                 $original_text = $page->getText();
-                $remove = "\n";
-                $split = explode($remove, $original_text);
 
+                $remove = "\n";
+
+                $split = explode($remove, $original_text);
                 $array[] = null;
                 $tab = "\t";
 
                 foreach ($split as $string) {
 
                     // $string = $this->format_data($string);
-                    $row = explode($tab, $string);
 
+                    $row = explode($tab, $string);
                     array_push($array, $row);
                 }
 
-                //Loop over each page to extract text.
+                //Loop over each array to extract text.
 
                 foreach ($array as $line) {
                     if (empty($line)) {
                         continue;
                     }
-                    fputcsv($fp, $line);
+                    $line =explode('\n',implode(',',explode(' ',implode('\n',$line))));
+                    fputcsv($fp, $line, $delimiter = ',', $enclosure = ' ', $escape_char = "\\");
+
                 }
 
             }
-            echo" <br/><br/> Check under documents to see the csv file";
+            echo " <br/><br/> Check under documents to see the csv file";
             fclose($fp);
 
         } else {
